@@ -1,0 +1,9 @@
+from {{input.fbase}}_enum import *
+from {{input.fbase}}_model import *
+import fastapi
+
+router = fastapi.APIRouter(prefix='/{{input.parent.name.lower()}}')
+
+@router.post('/{{input.name}}', tags=['{{input.parent.name}}'])
+async def {{input.parent.name}}{{input.name}}(data: {{input.name}}Params):
+    ...

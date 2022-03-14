@@ -1,0 +1,78 @@
+{%- for model in input.models -%}
+
+{% if loop.first %}
+import {{model.dbbase[0]}}
+import framework.queryparams
+import framework.types
+from {{model.fbase}}_enum import *
+from {{model.fbase}}_model import *
+import fastapi
+router = fastapi.APIRouter()
+{% endif %}
+
+{% if not model.is_internal -%}
+{% if not model.config.allowedapis or 'create' in model.config.allowedapis.lower() %}
+@router.post('/{{model.name.lower()}}', response_model={{model.name}}, tags=['{{model.name}}'])
+async def create(inputObj: {{model.name}}Create):
+    {% if model.references %}
+    await inputObj.load_refs()
+    {% endif %}
+    return await inputObj.create()
+{% endif %}
+{% if model.config.bulkcreate %}
+@router.post('/{{model.name.lower()}}/bulkcreate', response_model={{model.name}}, tags=['{{model.name}}'])
+async def bulkcreate(inputObj: typing.List[{{model.name}}Create]):
+    return [await x.create() for x in inputObj]
+{% endif %}
+
+{% if model.config.fileupload %}
+@router.post("/{{model.name.lower()}}/upload_file", tags=['{{model.name}}'])
+async def upload_file(uploadfile: fastapi.UploadFile = fastapi.File(...)):
+    os.makedirs("/tmp/uploads", exist_ok=True)
+    with open(f"/tmp/uploads/{uploadfile.filename}", "wb") as buffer:
+        shutil.copyfileobj(uploadfile.file, buffer)
+    return {"filename": f"/tmp/uploads/{uploadfile.filename}"}
+{% endif %}
+{% if not model.config.allowedapis or 'update' in model.config.allowedapis.lower() %}
+@router.put('/{{model.name.lower()}}', response_model={{model.name}}, tags=['{{model.name}}'])
+async def update(inputObj: {{model.name}}):
+    {% if model.references %}
+    await inputObj.load_refs()
+    {% endif %}
+    {% if model.reverseRef %}
+    await inputObj.update_refs()
+    {% endif %}
+    return await inputObj.update()
+{% endif %}
+{% if not model.config.allowedapis or 'read' in model.config.allowedapis.lower() %}
+@router.get('/{{model.name.lower()}}/{id}', response_model={{model.name}}, tags=['{{model.name}}'])
+async def get(id: str):
+    return await {{model.name}}.get(id)
+{% endif %}
+{% if not model.config.allowedapis or 'read' in model.config.allowedapis.lower() %}
+@router.get('/{{model.name.lower()}}', response_model={{model.name}}GetResp, tags=['{{model.name}}'])
+async def get_all(response: fastapi.Response, params = fastapi.Depends(framework.queryparams.QueryParams)):
+    if params.download:
+        response.headers['Content-Disposition'] = f'attachment; filename="{{model.name.lower()}}.html"'
+    return await {{model.name}}.get_all(params)
+{% endif %}
+{% if not model.config.allowedapis or 'delete' in model.config.allowedapis.lower() %}
+@router.delete('/{{model.name.lower()}}/{id}', tags=['{{model.name}}'])
+async def delete(id: str):
+    return await {{model.name}}().delete(id)
+{% endif %}
+{% if not model.config.allowedapis or 'delete' in model.config.allowedapis.lower() %}
+@router.delete('/{{model.name.lower()}}/{id}/bulkdelete', tags=['{{model.name}}'])
+async def bulkdelete(response: fastapi.Response, id: str, inputobjs: {{model.name}}BulkDelete):
+    return await {{model.name}}().bulkdelete(inputobjs.ids)
+{% endif %}
+
+{% for reverseref in model.reverseRef%}
+@router.get('/{{model.name.lower()}}/{id}/{{reverseref.name.lower()}}', response_model={{reverseref.name}}GetResp, tags=['{{model.name}}'], summary='Get {{reverseref.name}} objects associated with {{model.name}}.')
+async def get{{reverseref.name.lower()}}(id: str):
+    return await {{reverseref.name}}.get_all(framework.queryparams.QueryParams(q=f"SELECT * FROM datatable WHERE {{model.name.lower()}}_ref.id='{id}'"))
+
+{% endfor %}
+
+{%- endif %}
+{%- endfor -%}

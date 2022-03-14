@@ -1,0 +1,15 @@
+{%- if input.parent.optional -%}
+    typing.Optional[
+{%- endif -%}
+    {%- if input.parent.list -%}
+    typing.List[
+{%- endif -%}
+    {% block datatype %}{% endblock %} 
+{%- if input.parent.list -%}
+    ]
+{%- endif -%}
+
+{%- if input.parent.optional -%}
+    ] 
+{%- endif -%}
+{%- if input.has_params() or input.parent.default is not none %} = pydantic.Field({%if input.parent.default is not none %}{{input.parent.default}}, {% endif %}{%- block constraints -%}{%- endblock -%}){%- endif %}

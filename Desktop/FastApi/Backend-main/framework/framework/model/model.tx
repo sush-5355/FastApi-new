@@ -1,0 +1,124 @@
+
+/*
+*/
+
+Models:
+  (models += Model | enums += Enum)*
+;
+
+Comment:
+    /\/\/.*/
+;
+
+Model:
+  'Model' name=ID is_internal?='internal' '{'
+  (attrs += Attr |
+  indexes += Index |
+  unique += Unique |
+  references += Reference |
+  actions += Action)*
+  config = Config ?
+  '}'
+;
+
+Attr:
+    name=ID (list?='list' | optional?='optional')# ('default='(default=INT|default=STRING|default=BOOL|default=FLOAT))? (simpletype=BaseTypes | model_or_enum=[CustomType] )
+;
+
+CustomType:
+    Enum | Model
+;
+
+BaseTypes:
+    IntSpec | FloatSpec | StrSpec | BoolSpec | EmailSpec | Datetime | Date | Time | IpAddressv4 | IpAddressv6 | Secret
+;
+
+IntSpec:
+    'int' (('max='max=INT)? | ('min='min=INT)? | ('multiple='multiple=INT)? | ('default='default=INT)?)#
+;
+
+FloatSpec:
+    'float' (('max='max=INT)? | ('min='min=INT)? )#
+;
+
+StrSpec:
+    'str' (('maxlen='maxlen=INT)? | ('minlen='minlen=INT)? | ('regex='regex=STRING)? | ('startswith='startswith=STRING)? | ('endswith='endswith=STRING)? | ('contains='contains=STRING)? )#
+;
+
+BoolSpec:
+    x='bool'
+;
+
+EmailSpec:
+    x='email'
+;
+
+Datetime:
+    x='datetime'
+;
+
+Date:
+    x='date'
+;
+
+Time:
+    x='time'
+;
+
+IpAddressv4:
+    x='ipv4'
+;
+
+IpAddressv6:
+    x='ipv6'
+;
+
+Secret:
+    x='secret'
+;
+
+Index:
+    'Index=>' fields*=FieldOrder[',']
+;
+
+Unique:
+    'Unique=>' fields*=FieldOrder[','] tenant?='tenant'
+;
+
+FieldOrder:
+    field=[Attr] sort?="dsc"
+;
+
+Reference:
+    'Reference=>' optional?='optional' model=[Model] attrs*=[Attr][','] (relation='1-1' | relation='1-N' | relation='N-1' | relation='N-N') 
+;
+
+Enum:
+    'Enum' name=ID str?='str' '{'
+        fields *= EnumField
+    '}'
+;
+
+EnumField:
+    name=ID ('=' (value=STRING | value=INT))?
+;
+
+Action:
+ 'Action=>' name=ID '{'
+    params *= Attr
+ '}'
+;
+
+Config:
+    'Config=>' '{'
+        (
+        ('collection_name='collection_name=ID)?
+        ('def_query='def_query=STRING)?
+        ('allowedapis='allowedapis=STRING)?
+        ('filterkey='filterkey=STRING)?
+        (bulkcreate?='bulkcreate')?
+        (fileupload?='fileupload')?
+        (nocascadedelete?='nocascadedelete')?
+        )#
+    '}'
+;

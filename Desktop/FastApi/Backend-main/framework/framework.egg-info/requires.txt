@@ -1,0 +1,14 @@
+fastapi
+email-validator
+elasticsearch[async]==7.13.1
+httpx
+jinja2
+motor
+textx
+uvicorn
+aioredis_cluster
+aioredis
+redis
+cryptography
+pyjwt
+pydantic[dotenv]
